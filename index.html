@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>競艇シミュレーター</title>
+<style>
+:root{
+  --bg:#e7efed; --panel:#ffffff; --panel2:#f1f6f4; --ink:#10222a; --ink2:#40606b;
+  --line:#c7d7d2; --accent:#0a6e6a; --accent2:#c23a24; --gold:#a87b0a;
+  --water:#0d4a5c; --water2:#0a3746;
+  --chip:#e2edea;
+  --console:#0e2831; --console-line:#26505e; --board:#0b222b;
+  --shadow:0 2px 10px rgba(10,50,55,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a1316; --panel:#132227; --panel2:#0e1b1f; --ink:#e8f1ef; --ink2:#a3bfc0;
+    --line:#28444b; --accent:#2bb3a3; --accent2:#ff7a5c; --gold:#e0aa3e;
+    --water:#08303f; --water2:#062633; --chip:#1b3238;
+    --console:#0a1e25; --console-line:#23424e; --board:#081a21;
+    --shadow:0 2px 10px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:14px 14px 44px}
+button,select,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* race program header */
+.racehead{display:flex;flex-wrap:wrap;align-items:center;gap:7px;background:var(--console);color:#eaf3f1;border-radius:10px;padding:11px 14px;margin-bottom:10px;border-bottom:3px solid var(--gold)}
+.rh-label{font-weight:800;font-size:12.5px;letter-spacing:.16em;color:#ffd94d;margin-right:4px}
+.rh-chip{font-size:12px;font-weight:700;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:2px 10px;white-space:nowrap}
+.rh-note{margin-left:auto;font-size:11.5px;color:#9db8ba}
+.lead{color:var(--ink2);font-size:13.5px;margin:0 2px 14px}
+.lead b{color:var(--ink)}
+
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:13px 15px;margin-bottom:13px}
+.sec h2{font-size:15px;margin:0 0 9px;display:flex;align-items:center;gap:8px}
+.sec h2::before{content:"";width:9px;height:9px;border-radius:2px;background:var(--accent);flex:none}
+.sec h2 .tag{font-size:11px;background:var(--chip);border-radius:20px;padding:1px 9px;color:var(--ink2);font-weight:600}
+.sec h2 .step{font-size:10.5px;font-weight:800;letter-spacing:.08em;background:var(--accent);color:#fff;border-radius:5px;padding:2px 7px;flex:none}
+button{touch-action:manipulation}
+
+/* condition bar */
+.cond{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 14px}
+.condsec .cond>div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.cond label{font-size:12.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px}
+.cond .val{font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;cursor:pointer}
+select,input[type=number]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
+.windbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.windbtns button,.btn{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:40px;transition:border-color .15s,color .15s,background .15s}
+.windbtns button:hover,.btn:hover{border-color:var(--accent);color:var(--accent)}
+.windbtns button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary{background:#c8402a;border-color:#c8402a;color:#fff;font-size:15px;padding:9px 20px}
+.btn.primary:hover{color:#fff;border-color:#a93321;background:#b43721}
+.btn.go{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.go:hover{color:#fff;opacity:.92}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:active{transform:translateY(1px)}
+
+/* control console (sticky) */
+.stagebar{position:sticky;top:8px;z-index:60;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;background:var(--console);border:1px solid var(--console-line);border-radius:10px;margin-bottom:12px;box-shadow:0 6px 16px rgba(5,25,32,.30)}
+.stagebar .spacer{flex:1}
+.stagebar .btn{background:#1a3742;border-color:#2c525f;color:#eaf4f2}
+.stagebar .btn:hover{border-color:#7fd1c8;color:#fff}
+.stagebar .btn.primary{background:#c8402a;border-color:#d84f36;color:#fff}
+.stagebar .btn.primary:hover{background:#b43721;color:#fff}
+.stagebar .btn.go{background:#0b6e6b;border-color:#12837e;color:#fff}
+.stagebar .btn.go:hover{color:#fff}
+.stagebar .btn:disabled{opacity:.4}
+.seg{display:inline-flex;border:1px solid #2c525f;border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;background:#1a3742;color:#a9c6c9;border:0;cursor:pointer;min-height:40px}
+.seg button.on{background:#ffd94d;color:#20303a}
+.clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:17px;background:#0a1518;color:#ffd94d;border:1px solid #2c525f;border-radius:8px;padding:6px 12px;min-width:118px;text-align:center;letter-spacing:.03em}
+.phase{font-size:12.5px;font-weight:700;color:#a9c6c9}
+/* スマホ: コンソールを圧縮する。1段目=スタート/一気に計算、2段目=補助ボタン、
+   3段目=フェーズ+大時計+速度。従来は全要素が折り返して画面の1/3を占有していた */
+@media(max-width:700px){
+  .stagebar{gap:6px;padding:8px}
+  .stagebar .btn{min-height:42px;padding:7px 10px;font-size:12.5px}
+  #btnStart{order:1;flex:1 1 46%}
+  #btnFast{order:2;flex:1 1 46%}
+  #btnPause{order:3;flex:1 1 30%}
+  #btnSettings{order:4;flex:1 1 30%}
+  #btnStage{order:5;flex:1 1 30%}
+  .stagebar .spacer{display:none}
+  .phase{order:6;flex:1 1 100%;font-size:11.5px}
+  .clock{order:7;flex:1 1 auto;min-width:0;font-size:15px;padding:5px 8px}
+  .seg{order:8}
+  .seg button{min-height:40px;padding:6px 9px}
+}
+
+/* stage */
+.stagetop{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;margin-bottom:12px}
+.stagetop .st-label{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.stagetop .st-label .step{font-size:10.5px;font-weight:800;letter-spacing:.08em;background:var(--accent);color:#fff;border-radius:5px;padding:2px 7px}
+.stagegrid{display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start}
+@media(max-width:900px){.stagegrid{grid-template-columns:1fr}}
+.stagebox{background:var(--water2);border-radius:10px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+canvas#course{display:block;width:100%;height:auto}
+/* スマホ: レース画面を画面幅いっぱいに広げる。ページ余白と枠で小さくなる分をなくし、
+   コースを端から端まで表示する（390px幅なら表示幅 362px→390px、高さも比例して拡大） */
+@media(max-width:700px){
+  .wrap{padding-left:8px;padding-right:8px}
+  .stagetop{margin-left:-8px;margin-right:-8px;border-left:0;border-right:0;border-radius:0}
+  .stagebox{margin-left:-8px;margin-right:-8px;border-left:0;border-right:0;border-radius:0}
+}
+
+/* standings board (LED掲示板風) */
+.board{background:var(--board);border-color:var(--console-line);color:#e9f3f1}
+.board h2{color:#e9f3f1}
+.board h2::before{background:var(--gold)}
+.board h2 .tag{background:#1d3d47;color:#bfe0da}
+.stand{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.stand th,.stand td{padding:5px 6px;border-bottom:1px solid rgba(255,255,255,.13);font-size:13px;text-align:right}
+.stand th{color:#8fb3b8;font-size:11.5px;white-space:nowrap}
+.stand td:first-child,.stand th:first-child{text-align:left}
+.stand tr.dq{opacity:.55}
+.bnum{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-weight:800;font-size:12.5px;border:1.5px solid rgba(0,0,0,.35);vertical-align:-6px;margin-right:5px}
+.stbar{height:5px;background:rgba(255,255,255,.16);border-radius:3px;overflow:hidden;margin-top:3px}
+.stbar i{display:block;height:100%;background:#ffd94d}
+.evtlog{font-size:12.5px;max-height:190px;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin:0;padding-left:2px;list-style:none}
+.evtlog li{padding:4px 2px;border-bottom:1px dashed var(--line)}
+.tacchip{display:inline-block;font-size:10.5px;font-weight:800;border-radius:5px;padding:0 6px;margin-top:2px;background:#17323a;color:#ffd94d}
+.board .tacchip{background:#1d3d47}
+.tacchip.sashi{background:#2456c8;color:#fff}.tacchip.makuri{background:#c8402a;color:#fff}
+.tacchip.ms{background:#0b6e6b;color:#fff}.tacchip.nige{background:#b8860b;color:#fff}
+.evtlog .t{font-variant-numeric:tabular-nums;color:var(--ink2);font-weight:700;margin-right:6px}
+.evtlog li.bad{color:var(--accent2);font-weight:700}
+
+/* settings jump targets: sticky control bar must not cover headings */
+#condSec,#boatSec,#stageSec,#resSec{scroll-margin-top:118px}
+@media(max-width:700px){#condSec,#boatSec,#stageSec,#resSec{scroll-margin-top:212px}}
+
+/* boat selector tabs: pick a boat instead of scrolling through all six cards */
+.boat-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.boat-tabs button{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;gap:2px}
+.boat-tabs button:hover{border-color:var(--accent);color:var(--accent)}
+.boat-tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.boat-tabs button.on .bnum{border-color:rgba(255,255,255,.5)}
+.boat-tabs .spacer{flex:1}
+
+/* boat cards */
+.boats{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.boats.single{display:block}
+.boats.single .boat{display:none}
+.boats.single .boat.show{display:block}
+.boats.single .boat.show .ctls{grid-template-columns:repeat(3,1fr)}
+@media(max-width:700px){.boats.single .boat.show .ctls{grid-template-columns:1fr 1fr}.boats.single .boat.show .ctls .ctl:nth-child(5){grid-column:1/-1}}
+.boat{--bc:#888;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--bc);border-radius:10px;padding:10px 12px 12px;box-shadow:var(--shadow)}
+.boat h3{margin:-10px -12px 8px;padding:9px 12px;font-size:14.5px;display:flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--bc) 14%,var(--panel));border-bottom:1px solid var(--line)}
+.boat h3 .who{color:var(--ink2);font-size:12px;font-weight:600}
+.derived{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px}
+.derived span{font-size:11.5px;background:var(--chip);border-radius:6px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.derived span:first-child{font-weight:800}
+.ctl{margin:4px 0}
+.ctl .row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.ctl .row label{font-weight:700;color:var(--ink2)}
+.ctl .row output{font-weight:800;font-variant-numeric:tabular-nums}
+.ctl input[type=range]{height:22px}
+@media(max-width:700px){.ctl input[type=range]{height:32px}}
+.btn.random{background:var(--accent);border-color:var(--accent);color:#fff;width:100%;min-height:46px}
+.btn.random:hover{color:#fff;opacity:.92}
+#resEmpty{border:1.5px dashed var(--line);border-radius:8px;padding:16px 12px;text-align:center;font-size:13px}
+.ctl select{width:100%;margin-top:2px;padding:5px 8px;min-height:36px}
+.ctls{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}
+.ctls .ctl:nth-child(5){grid-column:1/-1}
+@media(max-width:560px){.ctls{grid-template-columns:1fr}.ctls .ctl:nth-child(5){grid-column:auto}}
+
+/* tactic cards */
+.tac{background:var(--panel2);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:8px;padding:10px 12px}
+.tac label{color:var(--ink);font-size:13.5px;margin-bottom:3px}
+.t-nige{border-top-color:#b8860b}.t-sashi{border-top-color:#2456c8}.t-makuri{border-top-color:#c8402a}.t-ms{border-top-color:#0b6e6b}
+
+/* results */
+table.res{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.res th,table.res td{padding:6px 7px;border-bottom:1px solid var(--line);font-size:13px;text-align:right;white-space:nowrap}
+table.res th{color:var(--ink2);font-size:11.5px;background:var(--panel2)}
+table.res td:first-child,table.res th:first-child,table.res td.l,table.res th.l{text-align:left;white-space:normal}
+table.res tbody tr:hover{background:var(--panel2)}
+.reswrap{overflow-x:auto}
+.tacHist{font-size:11.5px;color:var(--ink2);margin-top:3px;line-height:1.5}
+/* スマホ: 確定着順は表のまま押し込むと「経過・判定」列が数十pxまで潰れて
+   1〜2文字ずつ折り返すため、各艇をカード状に組み替える。
+   1行目=着順・艇・ST・タイム・最高速度、2行目=周回タイム、3行目=経過・判定（全幅） */
+@media(max-width:640px){
+  .reswrap{overflow-x:visible}
+  table.res,table.res tbody{display:block}
+  table.res thead{display:none}
+  table.res tr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 13px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  table.res tbody tr:hover{background:transparent}
+  table.res td{border-bottom:0;padding:0;white-space:nowrap;text-align:left}
+  table.res td:nth-child(3)::before{content:"ST ";font-size:11px;color:var(--ink2);font-weight:700}
+  table.res td:nth-child(5){order:6;flex:1 1 100%;white-space:normal;font-size:12px;color:var(--ink2)}
+  table.res td:nth-child(5)::before{content:"周回タイム（1・2・3周）";display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:1px}
+  table.res td:nth-child(7){order:7;flex:1 1 100%;white-space:normal;font-size:13px;line-height:1.7}
+  table.res td:nth-child(7)::before{content:"経過・判定";display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:1px}
+  .tacHist{font-size:12px;line-height:1.65;margin-top:4px}
+}
+.rank1{font-weight:800}
+.dqtxt{color:var(--accent2);font-weight:700}
+details.model{font-size:13px;color:var(--ink2)}
+details.model summary{cursor:pointer;font-weight:800;color:var(--ink);font-size:14px;padding:2px 0}
+details.model code{background:var(--chip);border-radius:4px;padding:0 5px;font-size:12px;color:var(--ink)}
+details.model li{margin:4px 0}
+.note{font-size:12px;color:var(--ink2)}
+.kv{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.kv b{color:var(--ink);font-variant-numeric:tabular-nums}
+canvas#graph{width:100%;height:auto;display:block;background:var(--panel2);border:1px solid var(--line);border-radius:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="racehead">
+  <span class="rh-label">開催概要</span>
+  <span class="rh-chip">出走 6艇</span>
+  <span class="rh-chip">3周 1800m</span>
+  <span class="rh-chip">フライング方式スタート</span>
+  <span class="rh-chip">物理演算 0.01秒刻み</span>
+  <span class="rh-note">選手・モーターはすべて架空の物理モデルによる架空設定です</span>
+</div>
+
+<!-- ===== 操作バー ===== -->
+<div class="stagebar">
+  <button class="btn primary" id="btnStart">▶ スタート（展示航走から）</button>
+  <button class="btn" id="btnPause" disabled>一時停止</button>
+  <button class="btn go" id="btnFast">結果まで一気に計算</button>
+  <button class="btn" id="btnSettings">水面・艇設定へ</button>
+  <button class="btn" id="btnStage">コース・順位へ</button>
+  <span class="spacer"></span>
+  <span class="phase" id="phaseLabel">待機中 — 条件を決めてスタート</span>
+  <span class="clock" id="bigClock">大時計 --.-</span>
+  <span class="seg" id="speedSeg" role="group" aria-label="再生速度">
+    <button data-sp="2">2倍</button><button data-sp="5" class="on">5倍</button><button data-sp="10">10倍</button><button data-sp="20">20倍</button>
+  </span>
+</div>
+
+<!-- ===== ステージ ===== -->
+<div id="stageSec">
+  <div class="stagetop">
+    <span class="st-label">レース画面</span>
+  </div>
+<div class="stagegrid">
+  <div class="stagebox"><canvas id="course" width="1180" height="600"></canvas></div>
+  <div>
+    <div class="sec board" style="margin-bottom:12px">
+      <h2>ライブ順位 <span class="tag" id="lapTag">—</span></h2>
+      <table class="stand"><thead><tr><th>順位</th><th>艇</th><th>速度</th><th>先頭差</th></tr></thead><tbody id="standBody"></tbody></table>
+    </div>
+    <div class="sec" style="margin-bottom:12px">
+      <h2>展開モニター</h2>
+      <ul class="evtlog" id="tacList" style="max-height:150px"><li>—</li></ul>
+    </div>
+    <div class="sec">
+      <h2>レース実況・審判ログ</h2>
+      <ul class="evtlog" id="evtLog"><li>—</li></ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== 条件 ===== -->
+<div class="sec condsec" id="condSec">
+  <h2>水面コンディション</h2>
+  <div class="cond">
+    <div>
+      <label>風向き（ホーム直線基準）<span class="val" id="windDirVal"></span></label>
+      <input type="range" id="windDir" min="0" max="359" step="1" value="180">
+      <div class="windbtns" id="windBtns">
+        <button data-w="0">ホーム追い風</button>
+        <button data-w="180" class="on">ホーム向かい風</button>
+        <button data-w="90">バック側→ホーム側</button>
+        <button data-w="270">ホーム側→バック側</button>
+      </div>
+    </div>
+    <div>
+      <label>風速 <span class="val" id="windSpdVal"></span></label>
+      <input type="range" id="windSpd" min="0" max="12" step="0.5" value="3">
+      <div class="note">波高 <b id="waveVal">—</b></div>
+    </div>
+    <div>
+      <label>再現シード</label>
+      <input type="number" id="seed" value="20261102" step="1" style="width:130px">
+    </div>
+    <div>
+      <label>プリセット</label>
+      <div class="windbtns">
+        <button id="presetStd">標準</button>
+        <button id="presetClose">全艇接戦</button>
+        <button id="presetMotor">モーター差大</button>
+        <button id="presetStorm">荒天・強風</button>
+      </div>
+      <label style="margin-top:8px">決まり手 再現プリセット</label>
+      <div class="windbtns">
+        <button id="presetSashi">差し（2コース）</button>
+        <button id="presetInSashi">イン取り差し（6→3コース）</button>
+        <button id="presetMakuri">捲り（3コース）</button>
+        <button id="presetMakuriSashi">捲り差し（4コース）</button>
+      </div>
+    </div>
+    <div>
+      <label>ランダム設定</label>
+      <div class="windbtns">
+        <button id="btnRandom" class="btn random">条件・6艇をランダムにする</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 艇設定 ===== -->
+<div class="sec" style="margin-top:12px" id="boatSec">
+  <h2>6艇の設定</h2>
+  <div class="boat-tabs" id="boatTabs" role="group" aria-label="設定する艇の選択">
+    <button data-boat="0"><span class="bnum" style="background:#f4f4f2;color:#111">1</span>1号艇</button>
+    <button data-boat="1"><span class="bnum" style="background:#232323;color:#fff">2</span>2号艇</button>
+    <button data-boat="2"><span class="bnum" style="background:#d3382c;color:#fff">3</span>3号艇</button>
+    <button data-boat="3"><span class="bnum" style="background:#2456c8;color:#fff">4</span>4号艇</button>
+    <button data-boat="4"><span class="bnum" style="background:#f2c41c;color:#111">5</span>5号艇</button>
+    <button data-boat="5"><span class="bnum" style="background:#1d9e57;color:#fff">6</span>6号艇</button>
+    <span class="spacer"></span>
+    <button data-boat="all">全艇表示</button>
+  </div>
+  <div class="boats" id="boatCards"></div>
+</div>
+
+<!-- ===== 結果 ===== -->
+<div class="sec" id="resSec">
+  <h2>確定着順</h2>
+  <div id="resEmpty" class="note">まだレースが終わっていません。</div>
+  <div class="reswrap" id="resWrap" style="display:none">
+    <table class="res"><thead><tr>
+      <th>着順</th><th class="l">艇</th><th>ST</th><th>レースタイム</th><th>周回タイム（1・2・3周）</th><th>最高速度</th><th class="l">経過・判定</th>
+    </tr></thead><tbody id="resBody"></tbody></table>
+  </div>
+</div>
+
+<div class="sec">
+  <h2>速度グラフ <span class="tag">km/h</span></h2>
+  <canvas id="graph" width="1160" height="240"></canvas>
+</div>
+
+</div>
+<script>
+"use strict";
+/* ================= 物理定数 ================= */
+var LAP=600, RACE_DIST=1800, STRAIGHT=150, RADIUS=(LAP-2*STRAIGHT)/(2*Math.PI); // ≒47.75m
+var MASS=185, RHO_AIR=1.225, CDA_AIR=0.42, GRAV=9.81;
+var BOATCOL=["#f4f4f2","#232323","#d3382c","#2456c8","#f2c41c","#1d9e57"];
+var BOATTXT=["#111","#fff","#fff","#fff","#111","#fff"];
+var NAMES=["白浜 翔","黒田 蓮","赤城 隼","青野 凪","黄瀬 光","緑川 葵"];
+
+/* 既定セッティング（架空） */
+var DEFAULTS=[
+ {motor:63,skill:78,st:0.12,tilt:1.0,prop:2},
+ {motor:55,skill:70,st:0.15,tilt:0.5,prop:0},
+ {motor:58,skill:66,st:0.10,tilt:1.5,prop:4},
+ {motor:50,skill:62,st:0.18,tilt:0.0,prop:-3},
+ {motor:66,skill:58,st:0.14,tilt:2.0,prop:6},
+ {motor:47,skill:55,st:0.20,tilt:0.5,prop:-1}
+];
+var settings=DEFAULTS.map(function(d,i){return {motor:d.motor,skill:d.skill,st:d.st,tilt:d.tilt,prop:d.prop,course:i+1,tactic:'auto'};});
+
+/* ================= シード乱数 ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ================= コース形状 =================
+   s=0: ホーム直線の入口（第2ターンの出口）。反時計回り。
+   区間: [0,150) ホーム直線 / [150,150+πR) 第1ターン / 次がバック直線 / 最後に第2ターン */
+var TURN_LEN=Math.PI*RADIUS, SEG2=STRAIGHT+TURN_LEN, SEG3=SEG2+STRAIGHT;
+function trackPoint2(s,l){
+  s=((s%LAP)+LAP)%LAP;
+  var h=STRAIGHT/2,x,y,tx,ty,ox,oy,kappa=0;
+  if(s<STRAIGHT){ x=-h+s; y=RADIUS; tx=1;ty=0; ox=0;oy=1; }
+  else if(s<SEG2){ var a=(s-STRAIGHT)/RADIUS + Math.PI/2; /* 90°→270°ではなく東側を通る経路 */
+    a=Math.PI/2 - (s-STRAIGHT)/RADIUS; /* 90°→-90° */
+    x=h+Math.cos(a)*RADIUS; y=Math.sin(a)*RADIUS;
+    tx=-Math.sin(a)*-1; ty=Math.cos(a)*-1; /* 進行方向: aが減る向き */
+    tx=Math.sin(a); ty=-Math.cos(a);
+    ox=Math.cos(a); oy=Math.sin(a); kappa=1/Math.max(18,RADIUS+l);
+  }
+  else if(s<SEG3){ var s2=s-SEG2; x=h-s2; y=-RADIUS; tx=-1;ty=0; ox=0;oy=-1; }
+  else { var a2=-Math.PI/2 - (s-SEG3)/RADIUS; /* -90°→-270° 西側 */
+    x=-h+Math.cos(a2)*RADIUS; y=Math.sin(a2)*RADIUS;
+    tx=Math.sin(a2); ty=-Math.cos(a2);
+    ox=Math.cos(a2); oy=Math.sin(a2); kappa=1/Math.max(18,RADIUS+l);
+  }
+  return {x:x+ox*l, y:y+oy*l, tx:tx, ty:ty, ox:ox, oy:oy, kappa:kappa};
+}
+var trackPt=trackPoint2;
+
+/* ================= 風 ================= */
+function windVec(){
+  var deg=+document.getElementById('windDir').value, spd=+document.getElementById('windSpd').value;
+  var rad=deg*Math.PI/180;
+  /* 画面基準: 0°=東(ホーム追い風)、90°=南(バック側→ホーム側)。座標系は画面y下向きに一致 */
+  return {x:Math.cos(rad)*spd, y:Math.sin(rad)*spd, spd:spd, deg:deg};
+}
+function waveHeight(){ var w=windVec(); return Math.min(0.55, 0.02*Math.pow(w.spd,1.6)); }
+function windLabel(deg){
+  if(deg<22||deg>=338)return "ホーム追い風";
+  if(deg<67)return "バック→ホーム寄り";
+  if(deg<112)return "バック側からホーム側へ";
+  if(deg<157)return "ホーム向かい・バック追い寄り";
+  if(deg<202)return "ホーム向かい風";
+  if(deg<247)return "ホーム→バック寄り（向かい気味）";
+  if(deg<292)return "ホーム側からバック側へ";
+  return "追い風気味（斜め）";
+}
+
+/* ================= 派生性能（物理式から算出） ================= */
+function derived(st){
+  var P=12000 + st.motor*230;                    /* 出力 W: 性能指数に比例 */
+  var eta=0.68 + st.prop*0.006;                  /* プロペラ効率 */
+  var kw=3.2*(1-0.055*st.tilt)*(1+0.10*waveHeight()*2); /* 接水抵抗係数 */
+  var Fcap=750 + st.motor*13;                    /* 低速域の推力上限（プロペラの静止推力） */
+  var vtop=19;
+  for(var i=0;i<40;i++){ var f=P*eta/Math.max(vtop,2)-kw*vtop*vtop-0.5*RHO_AIR*CDA_AIR*vtop*vtop; vtop+=f*0.002; }
+  var acc=(Math.min(P*eta/3,Fcap) - kw*9)/MASS;  /* 低速域の出足指標 */
+  return {P:P,eta:eta,kw:kw,vtop:vtop,acc:acc,Fcap:Fcap};
+}
+
+/* ================= UI: 艇カード ================= */
+var cardsEl=document.getElementById('boatCards');
+/* 艇タブ: 狭い画面では1艇表示から始め、広い画面では全艇表示。選択はカード再生成後も保持する */
+var boatTabSel=(window.innerWidth<=860)?0:"all";
+function applyBoatTab(){
+  cardsEl.classList.toggle("single",boatTabSel!=="all");
+  for(var j=0;j<cardsEl.children.length;j++){
+    cardsEl.children[j].classList.toggle("show",boatTabSel==="all"||boatTabSel===j);
+  }
+  document.querySelectorAll('#boatTabs button').forEach(function(b){
+    b.classList.toggle("on",String(boatTabSel)===b.dataset.boat);
+  });
+}
+document.querySelectorAll('#boatTabs button').forEach(function(b){
+  b.addEventListener('click',function(){
+    boatTabSel=(b.dataset.boat==="all")?"all":+b.dataset.boat;
+    applyBoatTab();
+  });
+});
+function scrollToSection(target){
+  if(!target)return;
+  var bar=document.querySelector('.stagebar');
+  var off=(bar?bar.getBoundingClientRect().height:64)+14;
+  var y=target.getBoundingClientRect().top+window.scrollY-off;
+  var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({top:Math.max(0,y),behavior:reduced?'auto':'smooth'});
+}
+document.getElementById('btnSettings').addEventListener('click',function(){
+  scrollToSection(document.getElementById('condSec'));
+});
+document.getElementById('btnStage').addEventListener('click',function(){
+  scrollToSection(document.getElementById('stageSec'));
+});
+function courseOffset(c){ return -11 + (c-1)*4.2; } /* 1コース=-11m(内) … 6コース=+10m */
+function buildCards(){
+  cardsEl.innerHTML="";
+  settings.forEach(function(st,i){
+    var d=document.createElement('div'); d.className="boat"; d.style.borderTopColor=BOATCOL[i]; d.style.setProperty("--bc",BOATCOL[i]);
+    d.innerHTML=
+    '<h3><span class="bnum" style="background:'+BOATCOL[i]+';color:'+BOATTXT[i]+'">'+(i+1)+'</span>'+(i+1)+'号艇 <span class="who">'+NAMES[i]+'（架空）</span></h3>'+
+    '<div class="derived" id="der'+i+'"></div>'+
+    '<div class="ctls">'+
+    ctl(i,'motor','モーター性能指数',35,75,1,'')+
+    ctl(i,'skill','選手能力（旋回・追い上げ）',35,90,1,'')+
+    ctl(i,'st','目標ST（秒）',-0.05,0.40,0.01,'')+
+    ctl(i,'tilt','チルト角度（度）',-0.5,3.0,0.5,'')+
+    ctl(i,'prop','プロペラ調整（出足型 −10 ⇔ +10 伸び型）',-10,10,1,'')+
+    '</div>'+
+    '<div class="ctl"><div class="row"><label>進入コース</label></div><select data-i="'+i+'" data-k="course">'+
+      [1,2,3,4,5,6].map(function(c){return '<option value="'+c+'"'+(st.course===c?' selected':'')+'>'+c+'コース</option>';}).join('')+
+    '</select></div>'+
+    '<div class="ctl"><div class="row"><label>戦法傾向（ターンマークでの仕掛け）</label></div><select data-i="'+i+'" data-k="tactic">'+
+      [['auto','自動（展開を読んで判断）'],['sashi','差し狙い'],['makuri','捲り狙い'],['ms','捲り差し狙い'],['nige','先行・逃げ切り狙い']].map(function(o){return '<option value="'+o[0]+'"'+(st.tactic===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+
+    '</select></div>';
+    cardsEl.appendChild(d);
+  });
+  cardsEl.querySelectorAll('input[type=range]').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var i=+inp.dataset.i,k=inp.dataset.k; settings[i][k]=+inp.value;
+      inp.parentElement.querySelector('output').textContent=fmtVal(k,+inp.value); refreshDerived();
+    });
+  });
+  cardsEl.querySelectorAll('select').forEach(function(sel){
+    sel.addEventListener('change',function(){
+      var i=+sel.dataset.i;
+      if(sel.dataset.k==='tactic'){ settings[i].tactic=sel.value; refreshDerived(); return; }
+      var nc=+sel.value, other=settings.findIndex(function(s,j){return j!==i&&s.course===nc;});
+      if(other>=0){ settings[other].course=settings[i].course; }
+      settings[i].course=nc; buildCards(); refreshDerived();
+    });
+  });
+  refreshDerived();
+  applyBoatTab();
+}
+function ctl(i,k,label,min,max,step){
+  return '<div class="ctl"><div class="row"><label>'+label+'</label><output>'+fmtVal(k,settings[i][k])+'</output></div>'+
+  '<input type="range" data-i="'+i+'" data-k="'+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+settings[i][k]+'"></div>';
+}
+function fmtVal(k,v){
+  if(k==='st')return v.toFixed(2);
+  if(k==='tilt')return v.toFixed(1)+'°';
+  return String(Math.round(v));
+}
+function refreshDerived(){
+  settings.forEach(function(st,i){
+    var dv=derived(st), el=document.getElementById('der'+i); if(!el)return;
+    el.innerHTML='<span>推定最高速 '+(dv.vtop*3.6).toFixed(1)+'km/h</span><span>出足 '+(dv.acc).toFixed(1)+'m/s²</span><span>'+st.course+'コース進入</span>';
+  });
+  document.getElementById('waveVal').textContent=waveHeight().toFixed(2)+'m';
+  document.getElementById('windSpdVal').textContent=(+document.getElementById('windSpd').value).toFixed(1)+' m/s';
+  var deg=+document.getElementById('windDir').value;
+  document.getElementById('windDirVal').textContent='— '+deg+'°（'+windLabel(deg)+'）';
+}
+document.getElementById('windDir').addEventListener('input',function(){
+  document.querySelectorAll('#windBtns button').forEach(function(b){b.classList.toggle('on',+b.dataset.w===+document.getElementById('windDir').value);});
+  refreshDerived();
+});
+document.getElementById('windSpd').addEventListener('input',refreshDerived);
+document.querySelectorAll('#windBtns button').forEach(function(b){
+  b.addEventListener('click',function(){ document.getElementById('windDir').value=b.dataset.w;
+    document.querySelectorAll('#windBtns button').forEach(function(x){x.classList.toggle('on',x===b);}); refreshDerived(); });
+});
+function mkSet(rows){ return rows.map(function(r,i){ return {motor:r[0],skill:r[1],st:r[2],tilt:r[3],prop:r[4],course:r[5],tactic:r[6]||'auto'}; }); }
+function applyPreset(name){
+  if(name==='std'){ settings=DEFAULTS.map(function(d,i){return {motor:d.motor,skill:d.skill,st:d.st,tilt:d.tilt,prop:d.prop,course:i+1,tactic:'auto'};}); document.getElementById('windSpd').value=3; }
+  if(name==='close'){ settings=settings.map(function(s,i){return {motor:58,skill:70,st:0.13,tilt:1.0,prop:2,course:i+1,tactic:'auto'};}); }
+  if(name==='motor'){ var m=[72,62,55,48,42,36]; settings=settings.map(function(s,i){return {motor:m[i],skill:s.skill,st:s.st,tilt:s.tilt,prop:s.prop,course:i+1,tactic:s.tactic};}); }
+  if(name==='storm'){ document.getElementById('windSpd').value=9; document.getElementById('windDir').value=180; }
+  /* 差し: 1号艇は速いが旋回が甘く膨らみやすい。2号艇は旋回技量が高く差し固定 */
+  if(name==='sashi'){ settings=mkSet([
+    [64,44,0.09,2.5,5,1,'nige'],[63,90,0.12,0.0,0,2,'sashi'],[50,62,0.15,0.5,0,3],
+    [47,58,0.17,0.0,-2,4],[45,55,0.18,0.5,0,5],[43,52,0.20,0.0,-2,6]]); }
+  /* イン取り差し: 6号艇が3コースまでインを取り、高い旋回技量で差す。3号艇は6コースへ。
+     対象の1号艇はモーター互角で旋回が膨らみやすく（チルト2.5）、スタートで少し遅れる条件に寄せてある。
+     それでも決まるかは旋回で膨らむ量と出口の加速という物理の結果で決まる */
+  if(name==='insashi'){ settings=mkSet([
+    [63,52,0.12,2.5,5,1,'nige'],[58,66,0.12,0.5,0,2],[48,58,0.16,0.5,0,6],
+    [49,60,0.16,0.0,0,4],[44,56,0.18,0.5,0,5],[63,90,0.09,0.0,1,3,'sashi']]); }
+  /* 捲り: 3号艇のモーターと伸びが抜けて速く、外を全速で回れる */
+  if(name==='makuri'){ settings=mkSet([
+    [73,48,0.06,2.0,2,1,'nige'],[54,62,0.13,0.5,0,2],[60,90,0.14,0.0,3,3,'makuri'],
+    [48,58,0.17,0.0,-2,4],[46,55,0.18,0.5,0,5],[44,52,0.20,0.0,-2,6]]); }
+  /* 捲り差し: 4号艇が速くて巧い。内側3艇は旋回で膨らみやすく、切り込む隙ができる */
+  if(name==='ms'){ settings=mkSet([
+    [59,55,0.10,1.5,4,1,'nige'],[50,58,0.17,1.0,2,2],[62,56,0.10,1.5,5,3],
+    [66,90,0.17,0.5,2,4,'ms'],[46,55,0.18,0.5,0,5],[44,52,0.20,0.0,-2,6]]); }
+  buildCards(); refreshDerived(); resetRace();
+}
+document.getElementById('presetStd').addEventListener('click',function(){applyPreset('std');});
+document.getElementById('presetClose').addEventListener('click',function(){applyPreset('close');});
+document.getElementById('presetMotor').addEventListener('click',function(){applyPreset('motor');});
+document.getElementById('presetStorm').addEventListener('click',function(){applyPreset('storm');});
+document.getElementById('presetSashi').addEventListener('click',function(){applyPreset('sashi');});
+document.getElementById('presetInSashi').addEventListener('click',function(){applyPreset('insashi');});
+document.getElementById('presetMakuri').addEventListener('click',function(){applyPreset('makuri');});
+document.getElementById('presetMakuriSashi').addEventListener('click',function(){applyPreset('ms');});
+/* ランダム設定: 風・シード・6艇の全パラメータをランダムに決め直す */
+function randomizeSettings(){
+  var ri=function(a,b){ return a+Math.floor(Math.random()*(b-a+1)); };
+  document.getElementById('windDir').value=ri(0,359);
+  document.getElementById('windSpd').value=ri(0,24)*0.5;
+  document.getElementById('seed').value=ri(1,99999999);
+  var courses=[1,2,3,4,5,6];
+  for(var i=courses.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var tmp=courses[i]; courses[i]=courses[j]; courses[j]=tmp; }
+  var tacs=['auto','auto','auto','sashi','makuri','ms','nige'];
+  settings=settings.map(function(s,idx){
+    return {
+      motor:ri(35,75),
+      skill:ri(35,90),
+      st:Math.round((Math.random()*0.37-0.02)*100)/100,
+      tilt:ri(-1,6)*0.5,
+      prop:ri(-10,10),
+      course:courses[idx],
+      tactic:tacs[ri(0,tacs.length-1)]
+    };
+  });
+  document.querySelectorAll('#windBtns button').forEach(function(b){
+    b.classList.toggle('on',+b.dataset.w===+document.getElementById('windDir').value);
+  });
+  buildCards(); refreshDerived(); resetRace();
+}
+document.getElementById('btnRandom').addEventListener('click',randomizeSettings);
+</script>
+<script>
+"use strict";
+/* ================= レース状態 ================= */
+var DT=0.01;
+var race=null, rafId=null, playing=false, playSpeed=5, lastTs=0, simAcc=0;
+var hist=[]; /* 速度グラフ用 {t, v:[...]} */
+
+function newBoat(i,rng){
+  var st=settings[i], dv=derived(st);
+  /* 進入の深さは当日の推定速度に合わせて選手が決める（遅い条件では浅く入る） */
+  var vEst=dv.vtop*(1-race.wave*0.45);
+  return {
+    i:i, st:st, P:dv.P, eta:dv.eta, kw:dv.kw, Fcap:dv.Fcap, vtop:dv.vtop,
+    tactic:null, lastTacticKey:"", tacticHistory:[], _mods:null,
+    dist:-(vEst*6.6+8) - (6-st.course)*1.0,
+    v:9.0, l:courseOffset(st.course), throttle:0,
+    targetL:courseOffset(st.course), dlRate:0,
+    stBias:(rng()-0.5)*2*(0.055 - st.skill*0.00045), /* 反応ばらつき: 技量が高いほど小さい */
+    crossed:false, actualST:null, state:"run", /* run / flying / late / capsize / enginestop / finished */
+    finishTime:null, laps:[], lapStart:0, distAtLap:0,
+    vMax:0, damage:0, stress:0, engineDown:false, foul:false, foulNote:"",
+    cool:0, events:[], wakeLoss:0, lastLapShown:0
+  };
+}
+function resetRace(){
+  stopAnim();
+  var seedVal=parseInt(document.getElementById('seed').value,10)||0;
+  var rng=mulberry32(seedVal);
+  race={ t:-9.0, boats:[], rng:rng, wind:windVec(), wave:waveHeight(), finished:false, log:[], started:false };
+  for(var i=0;i<6;i++) race.boats.push(newBoat(i,rng));
+  hist=[];
+  document.getElementById('evtLog').innerHTML="<li>—</li>";
+  document.getElementById('tacList').innerHTML="<li>—</li>";
+  document.getElementById('resWrap').style.display="none";
+  document.getElementById('resEmpty').style.display="block";
+  document.getElementById('phaseLabel').textContent="待機中 — 条件を決めてスタート";
+  document.getElementById('bigClock').textContent="大時計 --.-";
+  document.getElementById('btnPause').disabled=true;
+  document.getElementById('btnStart').textContent="▶ スタート（展示航走から）";
+  drawCourse(); drawStandings(); drawGraph();
+}
+function logEvent(txt,bad,tt){
+  race.log.push({t:(tt!==undefined?tt:race.t),txt:txt,bad:!!bad});
+  var el=document.getElementById('evtLog');
+  el.innerHTML=race.log.slice(-40).map(function(e){
+    var ts=e.t<0?("大時計 "+Math.max(0,-e.t).toFixed(1)):(e.t.toFixed(1)+"秒");
+    return '<li class="'+(e.bad?'bad':'')+'"><span class="t">'+ts+'</span>'+e.txt+'</li>';
+  }).join("");
+  el.scrollTop=el.scrollHeight;
+}
+function placeName(dist){
+  var s=((dist%LAP)+LAP)%LAP;
+  if(dist<0)return "助走";
+  if(s<STRAIGHT-15)return "ホーム直線";
+  if(s<SEG2)return "第1ターンマーク";
+  if(s<SEG3)return "バック直線";
+  return "第2ターンマーク";
+}
+
+/* ================= 決まり手（戦法）エンジン =================
+   ターンマーク手前で展開を評価して戦法を選び、進路・スロットル・
+   グリップの使い方を物理ステップへ渡す。成否はラベルではなく、
+   旋回半径・弧長・膨らみ・速度の積み重ねで決まる。 */
+var TAC_LABEL={nige:"逃げ",sashi:"差し",makuri:"捲り",ms:"捲り差し"};
+function turnCtx(dist){
+  var s=((dist%LAP)+LAP)%LAP;
+  var lap=Math.floor(Math.max(0,dist)/LAP)+1;
+  var base=(lap-1)*LAP;
+  if(s<STRAIGHT) return {lap:lap,mark:1,phase:"approach",toStart:STRAIGHT-s,prog:0,startAbs:base+STRAIGHT,endAbs:base+SEG2};
+  if(s<SEG2) return {lap:lap,mark:1,phase:"turn",toStart:0,prog:(s-STRAIGHT)/TURN_LEN,startAbs:base+STRAIGHT,endAbs:base+SEG2};
+  if(s<SEG3) return {lap:lap,mark:2,phase:"approach",toStart:SEG3-s,prog:0,startAbs:base+SEG3,endAbs:base+LAP};
+  return {lap:lap,mark:2,phase:"turn",toStart:0,prog:(s-SEG3)/TURN_LEN,startAbs:base+SEG3,endAbs:base+LAP};
+}
+function rankOf(b){
+  var r=0;
+  race.boats.forEach(function(o){ if(o!==b&&(o.state==="run"||o.state==="finished")&&o.dist>b.dist) r++; });
+  return r;
+}
+function tacticTarget(b){
+  var best=null,bestGap=1e9,wide=null,wideGap=1e9;
+  race.boats.forEach(function(o){
+    if(o===b||o.state!=="run")return;
+    var gap=o.dist-b.dist;
+    if(gap<0.3||gap>=36)return; /* 後方の艇と、到達範囲（36m）の外は対象にしない */
+    /* 予備候補: 前方で最も近く、自分より内側にいる艇（横位置の条件なし）。
+       外の艇が内を狙う形だけを予備候補にするのは計測に基づく判断で、
+       内の艇が大外の艇まで対象を広げると進路がフィールドを横切り、
+       接触・妨害が増えることが実測で確認できたため */
+    if(gap<wideGap&&Math.abs(o.l-b.l)<=22&&b.l>=o.l){ wideGap=gap; wide=o; }
+    /* 本命候補: 前方で最も近く、横位置も近い艇（9.5mまで） */
+    if(gap<bestGap&&Math.abs(o.l-b.l)<=9.5){ bestGap=gap; best=o; }
+  });
+  if(best)return best;
+  /* 本命候補が1艇もいない場合の対象選択（計測で判明した不具合の修正）:
+     大外を走る艇（6コースは横位置+10m）は、1〜3コースの艇と横距離が
+     12.6〜21m開くため、従来は目の前にいても全艇が横条件で消え、
+     「前方の艇を捉えていない」のではなく「対象が存在しない」扱いになり
+     判断そのものが行われなかった。候補が空のときだけ、前方で最も近い
+     内側の艇（横22m＝コース全幅まで）を対象にする。間に別の艇がいる対象は
+     後段の進路帯チェックで除外され、届くかどうかは従来どおり物理で決まる */
+  return wide;
+}
+function ensureTactic(b){
+  if(b.dist<0||b.state!=="run"||b.tactic)return;
+  var ctx=turnCtx(b.dist);
+  var key=ctx.lap+"-"+ctx.mark;
+  if(b.lastTacticKey===key||ctx.phase!=="approach")return;
+  if(ctx.toStart>78||ctx.toStart<20)return; /* 判断ウィンドウを必ず通過する刻み幅 */
+  var target=tacticTarget(b);
+  var type=null;
+  if(!target||target.dist-b.dist>34){
+    if(rankOf(b)===0&&(b.st.tactic==="nige"||b.st.tactic==="auto")) type="nige";
+    else { if(ctx.toStart<32) b.lastTacticKey=key; return; } /* まだ遠ければ後で再判定 */
+  } else {
+    var gap=target.dist-b.dist;
+    var vAdv=b.vtop-target.vtop;              /* 推定最高速の差 m/s */
+    var curAdv=b.v-target.v;
+    var pref=b.st.tactic||"auto";
+    if(pref==="sashi") type="sashi";
+    else if(pref==="makuri") type="makuri";
+    else if(pref==="ms") type="ms";
+    else if(pref==="nige") type="sashi";       /* 先行できない位置では差しに切替 */
+    else {
+      if(gap<=8.5&&(vAdv>1.0||curAdv>0.85)) type="makuri";
+      else if(b.st.course>=3&&gap<=16&&(vAdv>0.3||b.st.skill>=target.st.skill+4)) type="ms";
+      else if(gap<=17) type="sashi";
+      else if(gap<=30&&b.l>target.l+1.5) type="ms"; /* 離れた外の艇（大外の6コース等）は捲り差しの構えでマークへ向かう。届くかどうかは物理で決まる */
+      else if(gap<=24) type="sashi";
+      else { if(ctx.toStart<32) b.lastTacticKey=key; return; }
+      if(b.st.course===2&&type==="makuri"&&vAdv<1.7) type="sashi";
+      if(b.st.course<=2&&type==="ms") type="sashi";
+    }
+    /* すでに対象より内側にいる艇が外へ回るには対象を横切る必要があり、現実には選ばない */
+    if(target&&b.l<target.l-1.5&&(type==="makuri"||type==="ms")) type="sashi";
+    if(b.st.course<=2&&(type==="makuri"||type==="ms")) type="sashi";
+  }
+  /* 仕掛けの競合回避: 同じマークで同時に仕掛ける艇を絞る */
+  if(target){
+    if(target.dist-b.dist<2.2){ if(ctx.toStart<32) b.lastTacticKey=key; return; } /* 並走状態からは新たに仕掛けない */
+    /* 同時仕掛けの調停は、対象ごとの競合チェック・対戦カード登録・進路上の他艇回避で担保する */
+    if(target.tactic&&target.tactic.targetI===b.i){ if(ctx.toStart<32) b.lastTacticKey=key; return; } /* 向き合った仕掛けは成立しない */
+    /* 同じマークで一度成立した対戦カードの逆向きは、判断タイミングがずれても受理しない */
+    var reg=(race.tacReg&&race.tacReg[key])||[];
+    if(reg.some(function(e){return e.boat===target.i&&e.target===b.i;})){ if(ctx.toStart<32) b.lastTacticKey=key; return; }
+    var gapNow=target.dist-b.dist;
+    var blocked=race.boats.some(function(o){
+      if(o===b||o===target||o.state!=="run")return false;
+      var g2=target.dist-o.dist;
+      var inCorridor=o.l>Math.min(b.l,target.l)-2&&o.l<Math.max(b.l,target.l)+2;
+      return g2>0&&g2<gapNow-0.8&&inCorridor; /* 間の進路帯にもっと近い艇がいる対象は狙わない */
+    });
+    if(blocked){ if(ctx.toStart<32) b.lastTacticKey=key; return; }
+  }
+  var label=TAC_LABEL[type];
+  /* 枠より内へ進入した艇の差しは「イン取り差し」 */
+  if(type==="sashi"&&ctx.lap===1&&ctx.mark===1&&((b.i+1)-b.st.course)>=1) label="イン取り差し";
+  b.tactic={type:type,label:label,targetI:target?target.i:-1,lap:ctx.lap,mark:ctx.mark,anchorL:b.l,
+    startAbs:ctx.startAbs,endAbs:ctx.endAbs,beforeGap:target?target.dist-b.dist:0,phase:"approach"};
+  b.lastTacticKey=key;
+  if(!race.tacReg)race.tacReg={};
+  (race.tacReg[key]=race.tacReg[key]||[]).push({boat:b.i,target:target?target.i:-1});
+  var where=ctx.lap+"周"+ctx.mark+"マーク";
+  logEvent((b.i+1)+"号艇、"+where+"で"+(target?((target.i+1)+"号艇に"):"")+"「"+label+"」を狙う",false);
+}
+function tacticMods(b){
+  var t=b.tactic; if(!t)return null;
+  var target=t.targetI>=0?race.boats[t.targetI]:null;
+  var tl=target?target.l:b.l;
+  var phase=b.dist<t.startAbs?"approach":(b.dist<=t.endAbs?"turn":"exit");
+  t.phase=phase;
+  var prog=t.endAbs>t.startAbs?Math.max(0,Math.min(1,(b.dist-t.startAbs)/(t.endAbs-t.startAbs))):0;
+  t.prog=prog;
+  var m={desired:null,latMul:1,vMul:1,latRateMul:1,throttleCap:1,throttleFloor:0};
+  var gap=target?target.dist-b.dist:99;
+  if(t.type==="nige"){
+    if(phase==="approach"){ m.desired=-12.1; m.vMul=1.02; m.latRateMul=1.2; }
+    else if(phase==="turn"){ m.desired=-12.6; m.vMul=1.02; m.latRateMul=1.3; }
+    else { m.desired=-10.6; m.throttleFloor=0.92; }
+  } else if(t.type==="sashi"){
+    if(phase==="approach"){ m.desired=Math.max(-13.2,tl-3.9); m.vMul=0.94; m.throttleCap=0.8; m.latRateMul=1.35; }
+    else if(phase==="turn"){ m.desired=Math.max(-13.4,tl-4.7); m.vMul=prog<0.5?0.96:1.06; m.latRateMul=1.55; if(prog>0.45)m.throttleFloor=0.9; }
+    else { m.desired=-11.2; m.throttleFloor=0.95; m.vMul=1.05; } /* 出口はインを守る。対象を追って横切らない */
+  } else if(t.type==="makuri"){
+    if(phase==="approach"){ m.desired=Math.min(18,tl+5.6); m.throttleFloor=0.95; m.vMul=1.05; m.latRateMul=1.3; }
+    else if(phase==="turn"){ m.desired=Math.min(18,tl+5.2); m.throttleFloor=0.92; m.vMul=1.07; m.latMul=1.08; m.latRateMul=1.35; }
+    else { m.desired=courseOffset(b.st.course); m.throttleFloor=0.95; } /* 出口は自分のラインへ収束 */
+  } else if(t.type==="ms"){
+    if(phase==="approach"){ m.desired=Math.min(18,tl+5.0); m.throttleFloor=0.9; m.vMul=1.04; m.latRateMul=1.3; }
+    else if(phase==="turn"){
+      if(prog<0.42){ m.desired=Math.min(18,tl+4.8); m.throttleFloor=0.92; m.vMul=1.06; m.latMul=1.06; }
+      else { m.desired=Math.max(-13.3,tl-4.9); m.throttleFloor=0.88; m.vMul=1.03; m.latMul=1.12; m.latRateMul=1.6; }
+    }
+    else { m.desired=-10.8; m.throttleFloor=0.97; m.vMul=1.05; m.latRateMul=1.4; } /* 切り込んだインを出口で守る */
+  }
+  /* 仕掛け前に対象へ近づきすぎたら一旦絞る（接触の回避行動） */
+  if(phase==="approach"&&target&&gap<3.2&&gap>-1) m.throttleCap=Math.min(m.throttleCap,0.55);
+  /* 自分が絞ることで後続に追突されないよう、前方の艇全般との間隔も見る */
+  if(phase==="approach"){
+    race.boats.forEach(function(o){
+      if(o===b||o.state!=="run")return;
+      var dg=o.dist-b.dist;
+      if(dg>0&&dg<4.5&&Math.abs(o.l-b.l)<2.6&&o.v<b.v+0.3) m.throttleCap=Math.min(m.throttleCap,0.6);
+    });
+  }
+  /* 進路変更の幅に上限: 助走では少しずつ寄せ、旋回中も入った位置から大きくは横切らない */
+  if(m.desired!==null&&m.desired!==undefined){
+    if(phase==="turn"&&t.entryL===undefined) t.entryL=b.l;
+    if(phase==="exit"&&t.exitL===undefined) t.exitL=b.l;
+    var aL=(t.anchorL!==undefined?t.anchorL:b.l);
+    if(phase==="approach") m.desired=Math.max(aL-4.5,Math.min(aL+4.5,m.desired));
+    else if(phase==="turn") m.desired=Math.max(t.entryL-7.5,Math.min(t.entryL+7.5,m.desired));
+    else m.desired=Math.max(t.exitL-4.2,Math.min(t.exitL+4.2,m.desired));
+    /* 進路上に他艇がいたら、その艇の脇で止める（割り込まない） */
+    race.boats.forEach(function(o){
+      if(o===b||o.state!=="run")return;
+      var ds=o.dist-b.dist;
+      if(ds>-3&&ds<6){
+        var lo=Math.min(b.l,m.desired)-1.1, hi=Math.max(b.l,m.desired)+1.1;
+        if(o.l>lo&&o.l<hi&&Math.abs(o.l-b.l)>1.4) m.desired=o.l+(b.l>o.l?2.9:-2.9); /* 自分がいる側で止める */
+      }
+    });
+  }
+  m.targetL=tl;
+  return m;
+}
+function updateTacticOutcome(b){
+  var t=b.tactic; if(!t)return;
+  if(b.state!=="run"&&b.state!=="finished"){ b.tactic=null; return; }
+  if(b.dist<=t.endAbs+42)return;
+  var target=t.targetI>=0?race.boats[t.targetI]:null;
+  var where=t.lap+"周"+t.mark+"マーク";
+  var success;
+  if(t.type==="nige") success=!target||b.dist>target.dist;
+  else success=!!target&&b.dist>target.dist;
+  if(success){
+    b.tacticHistory.push(where+" "+t.label+"成功");
+    if(t.type!=="nige"||(t.lap===1&&t.mark===1)){
+      b.events.push(where+"で"+t.label+"が決まった");
+      logEvent((b.i+1)+"号艇、"+where+"で"+t.label+"が決まった！",false);
+    }
+  } else if(t.lap===1&&t.mark===1){
+    b.tacticHistory.push(where+" "+t.label+"不発");
+    logEvent((b.i+1)+"号艇の"+t.label+"は届かず（"+where+"）",false);
+  } else {
+    b.tacticHistory.push(where+" "+t.label+"不発");
+  }
+  b.tactic=null;
+}
+
+/* ================= 物理ステップ ================= */
+function stepBoat(b,dt){
+  if(b.state==="finished") return;
+  ensureTactic(b);
+  var tmods=tacticMods(b); b._mods=tmods;
+  var wind=race.wind, wave=race.wave;
+  var sMod=((b.dist%LAP)+LAP)%LAP;
+  var pt=trackPt(b.dist,b.l);
+  var kappa=pt.kappa;
+
+  /* --- 横方向グリップ限界（横加速度 m/s²） --- */
+  var latMax=(4.6 + b.st.skill*0.036) * (1 - Math.max(0,b.st.tilt-1)*0.055) * (1 - wave*0.34);
+  if(tmods) latMax*=tmods.latMul; /* 捲り差しの切り込み等、戦法ごとのグリップの使い方 */
+  latMax=Math.max(3.2,latMax);
+
+  /* --- スロットル制御 --- */
+  var throttle;
+  if(b.state==="flying"||b.state==="late"||b.state==="enginestop"||b.state==="capsize"){
+    throttle=0;
+  } else if(b.dist<0){
+    /* スタート助走: 目標STにラインを切るよう残距離/残時間から要求速度を逆算 */
+    var effST=b.st.st + b.stBias;
+    var tRem=(0 - race.t) + effST;
+    var dRem=-b.dist;
+    /* 必要な「中心線換算の進み速度」を、今いる区間の弧長係数で割って実速度に直す */
+    var ptNow=trackPt(b.dist,b.l);
+    var arcF=ptNow.kappa>0.0001 ? RADIUS/Math.max(18,RADIUS+b.l) : 1;
+    var vDes=(dRem/Math.max(tRem,0.25))/arcF;
+    vDes=Math.max(3.5,Math.min(vDes,20.5));
+    if(b.v<vDes-0.4) throttle=1;
+    else if(b.v>vDes+0.4) throttle=0.05;
+    else throttle=0.62;
+    /* 前艇の引き波・間隔調整 */
+    for(var j=0;j<6;j++){ var o=race.boats[j]; if(o===b)continue;
+      var ds=o.dist-b.dist; if(ds>0&&ds<5&&Math.abs(o.l-b.l)<3) throttle=Math.min(throttle,0.5); }
+  } else {
+    /* レース中: 前方1.3秒先の曲率を見てターン速度を決める */
+    var look=Math.min(30,b.v*1.35+6), ptA=trackPt(b.dist+look,b.l);
+    var vAllow=99;
+    if(ptA.kappa>0.0001) vAllow=Math.sqrt(latMax/ptA.kappa)*0.985;
+    if(tmods) vAllow*=tmods.vMul;             /* 差しは待つ、捲りは速度を残す */
+    if(b.v>vAllow+0.3) throttle=0.04;         /* 絞る */
+    else if(b.v>vAllow-0.6) throttle=0.45;    /* 維持 */
+    else throttle=1;                          /* 全速 */
+    if(kappa>0.0001){ var vHere=Math.sqrt(latMax/kappa)*(tmods?tmods.vMul:1); if(b.v>vHere) throttle=Math.min(throttle,0.25); }
+    if(tmods){
+      if(tmods.throttleCap<1) throttle=Math.min(throttle,tmods.throttleCap);
+      if(tmods.throttleFloor>0&&b.v<vAllow*1.12) throttle=Math.max(throttle,tmods.throttleFloor);
+    }
+    /* 前艇への追突回避（全艇共通）: 同一レーン前方に遅い艇が近ければ絞る */
+    for(var ti=0;ti<6;ti++){ var tf=race.boats[ti]; if(tf===b||tf.state!=="run")continue;
+      var tdg=tf.dist-b.dist;
+      if(tdg>0&&tdg<4.2&&Math.abs(tf.l-b.l)<2.4&&tf.v<b.v) throttle=Math.min(throttle,0.5); }
+  }
+  b.throttle+=(throttle-b.throttle)*Math.min(1,dt*7); /* スロットル応答 */
+
+  /* --- 引き波（前艇の航跡） --- */
+  var wake=0;
+  if(b.state==="run"){
+    for(var k=0;k<6;k++){ var q=race.boats[k]; if(q===b||q.state!=="run"&&q.state!=="finished")continue;
+      var dds=q.dist-b.dist;
+      if(dds>1.5&&dds<18&&Math.abs(q.l-b.l)<3.2) wake=Math.max(wake, Math.exp(-dds/9)); }
+  }
+  b.wakeLoss=wake;
+
+  /* --- 推力・抵抗 --- */
+  var etaEff=b.eta*(1-0.15*wake)*(b.engineDown?0.55:1);
+  var Fthrust=Math.min(b.P*etaEff/Math.max(b.v,2.0), b.Fcap)*b.throttle;
+  var kwEff=b.kw*(1+wave*0.85*(1-b.st.tilt*0.07))*(1+0.16*wake);
+  var Fwater=kwEff*b.v*b.v;
+  var windAlong=wind.x*pt.tx+wind.y*pt.ty;
+  var vRel=b.v-windAlong;
+  var Fair=0.5*RHO_AIR*CDA_AIR*vRel*Math.abs(vRel);
+  var a=(Fthrust-Fwater-Fair)/MASS;
+
+  /* 旋回限界超過: 膨らみ＋抵抗 */
+  var drift=0;
+  if(kappa>0.0001&&b.state==="run"){
+    var need=b.v*b.v*kappa;
+    if(need>latMax){
+      var excess=need-latMax;
+      drift=excess*0.55;                       /* 外へ流れる速度 m/s */
+      a-=excess*0.38;                          /* スクラブ抵抗 */
+    }
+  }
+  b.v+=a*dt;
+  if(b.state==="flying"||b.state==="late"||b.state==="capsize"||b.state==="enginestop"){ b.v=Math.max(0,b.v-dt*2.6); }
+  b.v=Math.max(0,b.v);
+  /* ターン区間では自艇の旋回半径で弧長が変わる: 内側ほど中心線換算の進みが速い */
+  var arcFactor = kappa>0.0001 ? RADIUS/Math.max(18,RADIUS+b.l) : 1;
+  b.dist+=b.v*arcFactor*dt;
+  b.vMax=Math.max(b.vMax,b.v);
+
+  /* --- 横移動（進路変更） --- */
+  var desired=b.targetL;
+  if(b.state==="flying"||b.state==="late"||b.state==="capsize"){ desired=20; }
+  else if(b.dist>=0&&b.state==="run"){
+    desired=courseOffset(b.st.course);
+    if(kappa>0.0001||trackPt(b.dist+b.v*1.1,b.l).kappa>0.0001) desired=courseOffset(b.st.course)-1.2; /* ターンは内へ */
+    /* 追い抜き: 前に遅い艇がいて航跡にかかるなら外へ */
+    for(var m=0;m<6;m++){ var f=race.boats[m]; if(f===b||f.state!=="run")continue;
+      var df=f.dist-b.dist;
+      if(df>2&&df<13&&Math.abs(f.l-b.l)<3.4&&f.v<b.v+0.4){ desired=Math.min(13,f.l+3.6); }
+      if(df>0&&df<5&&Math.abs(f.l-b.l)<2.2&&f.v>=b.v){ desired=b.l; } /* 無理せず追随 */
+    }
+    /* 戦法の進路が通常の追い抜き判断より優先される（差しの内寄せ、捲りの外回り、捲り差しの切り替え） */
+    if(tmods&&tmods.desired!==null&&tmods.desired!==undefined) desired=tmods.desired;
+    /* 全艇共通の割り込み防止: 進路上に他艇がいたら、その艇の脇で止める */
+    for(var gi=0;gi<6;gi++){ var go=race.boats[gi]; if(go===b||go.state!=="run")continue;
+      var gds=go.dist-b.dist;
+      if(gds>-3&&gds<6){
+        var glo=Math.min(b.l,desired)-1.1, ghi=Math.max(b.l,desired)+1.1;
+        if(go.l>glo&&go.l<ghi&&Math.abs(go.l-b.l)>1.4) desired=go.l+(b.l>go.l?2.9:-2.9);
+      } }
+  }
+  var windCross=wind.x*pt.ox+wind.y*pt.oy;
+  var maxLat=(0.85+b.st.skill*0.011)*(0.5+Math.min(1,b.v/10))*(tmods?tmods.latRateMul:1);
+  var want=(desired-b.l);
+  var dl=Math.max(-maxLat,Math.min(maxLat,want*1.4))*dt + drift*dt + windCross*0.012*dt*(1+b.v*0.05);
+  /* 横移動速度の物理上限（艇が真横に滑れる速さには限界がある） */
+  var maxDl=2.6*dt; dl=Math.max(-maxDl,Math.min(maxDl,dl));
+  b.dlRate=dt>0?dl/dt:0;
+  b.l+=dl;
+  b.l=Math.max(-13.5,Math.min(20,b.l));
+
+  /* --- エンジン負荷 --- */
+  if(b.state==="run"&&b.dist>0){
+    var loadRate=b.throttle*Math.max(0,Math.abs(b.st.prop)-5)*0.006
+      + b.throttle*Math.max(0,b.st.tilt-2)*0.010
+      + b.throttle*Math.max(0,40-b.st.motor)*0.0010;
+    b.stress+=loadRate*dt*(0.8+race.rng()*0.4);
+    if(b.throttle<0.55) b.stress=Math.max(0,b.stress-dt*0.006); /* 絞る区間では負荷が抜ける */
+    if(!b.engineDown&&b.stress>1.0){
+      if(b.stress>1.55){ b.state="enginestop"; b.events.push("エンスト"); logEvent((b.i+1)+"号艇 エンジン停止（過負荷）— 失格",true); }
+      else { b.engineDown=true; b.events.push("キャビテーション多発で出力低下"); logEvent((b.i+1)+"号艇 キャビテーション多発、出力低下",true); }
+    }
+  }
+  if(b.cool>0)b.cool-=dt;
+
+  /* --- スタートライン通過 --- */
+  if(!b.crossed&&b.dist>=0){
+    b.crossed=true;
+    var tCross=race.t - (b.dist/b.v)*0 + (b.v>0? -(b.dist)/b.v : 0); /* 直前ステップからの近似 */
+    b.actualST=race.t - b.dist/Math.max(b.v,0.1);
+    b.lapStart=b.actualST;
+    if(b.actualST<0){ b.state="flying"; b.events.push("フライング F"+Math.abs(b.actualST).toFixed(2));
+      logEvent((b.i+1)+"号艇 フライング（ST "+b.actualST.toFixed(2)+"）— 失格・除外",true,b.actualST); }
+    else if(b.actualST>=1.0){ b.state="late"; b.events.push("出遅れ（スタート事故）");
+      logEvent((b.i+1)+"号艇 出遅れ ST "+b.actualST.toFixed(2)+" — スタート事故・失格",true,b.actualST); }
+    else logEvent((b.i+1)+"号艇 スタート ST "+b.actualST.toFixed(2)+(b.actualST<=0.05?"（トップスタート）":""),false,b.actualST);
+  }
+  /* --- 周回・ゴール --- */
+  if(b.crossed&&b.state==="run"){
+    if(b.dist-b.distAtLap>=LAP){
+      b.distAtLap+=LAP;
+      var lt=race.t-b.lapStart; b.laps.push(lt); b.lapStart=race.t;
+      if(b.dist>=RACE_DIST-0.01){ /* 下で確定 */ }
+    }
+    if(b.dist>=RACE_DIST){
+      b.state="finished"; b.finishTime=race.t;
+      logEvent((b.i+1)+"号艇 ゴール（"+race.t.toFixed(2)+"秒）",false);
+    }
+  }
+  updateTacticOutcome(b);
+}
+
+/* --- 接触判定 --- */
+function checkContacts(){
+  var bs=race.boats;
+  for(var i=0;i<6;i++)for(var j=i+1;j<6;j++){
+    var a=bs[i],c=bs[j];
+    if(a.state!=="run"||c.state!=="run")continue;
+    if(a.dist<0||c.dist<0)continue;
+    if(a.cool>0||c.cool>0)continue;
+    var ds=Math.abs(a.dist-c.dist), dl=Math.abs(a.l-c.l);
+    if(ds<3.3&&dl<1.6){
+      var impact=Math.abs(a.v-c.v)+Math.abs(a.dlRate-c.dlRate)*0.7+Math.max(0,(3.3-ds))*0.8;
+      a.cool=c.cool=2.2; /* 擦れ合いが続く間は再判定を間引く */
+      /* 軽い接触（旋回中の擦れ）は損傷が小さく、大きな衝撃ほど蓄積する */
+      var dmg=impact<2.0?impact*0.15:impact*0.30;
+      a.damage+=dmg; c.damage+=dmg;
+      var slow=1-Math.min(0.42,0.14+impact*0.05);
+      a.v*=slow; c.v*=slow;
+      var push=a.l<c.l?-1:1; a.l+=push*0.9; c.l-=push*0.9;
+      var where=placeName((a.dist+c.dist)/2);
+      logEvent(where+"で "+(a.i+1)+"号艇と"+(c.i+1)+"号艇が接触（衝撃 "+impact.toFixed(1)+"）",impact>1.6);
+      a.events.push(where+"で接触"); c.events.push(where+"で接触");
+      /* 転覆判定: 損傷蓄積 or 大衝撃 */
+      [[a,c],[c,a]].forEach(function(pair){
+        var me=pair[0],other=pair[1];
+        if(me.state==="run"&&(me.damage>1.3||impact>3.1&&me.st.skill<68)){
+          me.state="capsize"; me.events.push(where+"で転覆・落水");
+          logEvent((me.i+1)+"号艇 "+where+"で転覆・落水 — 失格",true);
+        }
+      });
+      /* 妨害判定: 後方から内へ切り込んだ側 */
+      var rear=a.dist<c.dist?a:c, front=rear===a?c:a;
+      var cutting=(rear.dlRate*(front.l-rear.l)>0.6)&&impact>1.5;
+      if(cutting&&!rear.foul){ rear.foul=true; rear.foulNote="妨害失格（"+where+"で内側へ切り込み接触）";
+        logEvent((rear.i+1)+"号艇、"+where+"での切り込み接触で妨害失格の判定",true); }
+    }
+  }
+}
+function stepRace(dt){
+  race.t+=dt;
+  race.boats.forEach(function(b){ stepBoat(b,dt); });
+  checkContacts();
+  if(Math.round(race.t/0.25)!==Math.round((race.t-dt)/0.25)){
+    hist.push({t:race.t, v:race.boats.map(function(b){return b.v*3.6;})});
+    if(hist.length>700)hist.shift();
+  }
+  var alive=race.boats.some(function(b){return b.state==="run";});
+  var anyCrossed=race.boats.some(function(b){return b.crossed;});
+  if((anyCrossed&&!alive)||race.t>400){ finishRace(); }
+}
+function ranking(){
+  var bs=race.boats.slice();
+  var fin=bs.filter(function(b){return b.state==="finished"&&!b.foul;}).sort(function(x,y){return x.finishTime-y.finishTime;});
+  var run=bs.filter(function(b){return b.state==="run";}).sort(function(x,y){return y.dist-x.dist;});
+  var foul=bs.filter(function(b){return b.state==="finished"&&b.foul;}).sort(function(x,y){return x.finishTime-y.finishTime;});
+  var out=bs.filter(function(b){return ["flying","late","capsize","enginestop"].indexOf(b.state)>=0;});
+  return fin.concat(run).concat(foul).concat(out);
+}
+function finishRace(){
+  if(race.finished)return; race.finished=true; stopAnim();
+  document.getElementById('phaseLabel').textContent="レース終了 — 確定着順を表示";
+  document.getElementById('btnPause').disabled=true;
+  var order=ranking();
+  var tb=document.getElementById('resBody'); tb.innerHTML="";
+  order.forEach(function(b,idx){
+    var rankTxt, cls="";
+    if(b.state==="finished"&&!b.foul){ rankTxt=(idx+1)+"着"; cls="rank1"; }
+    else if(b.foul){ rankTxt="失格"; cls="dqtxt"; }
+    else if(b.state==="flying"){ rankTxt="F（失格）"; cls="dqtxt"; }
+    else if(b.state==="late"){ rankTxt="出遅れ（失格）"; cls="dqtxt"; }
+    else if(b.state==="capsize"){ rankTxt="転覆（失格）"; cls="dqtxt"; }
+    else if(b.state==="enginestop"){ rankTxt="エンスト（失格）"; cls="dqtxt"; }
+    else { rankTxt="—"; }
+    var laps=b.laps.map(function(x){return x.toFixed(2);}).join(" / ")||"—";
+    var ev=b.events.length?b.events.join("、"):"クリーンな航走";
+    if(b.foul)ev+="／"+b.foulNote;
+    /* 仕掛けた決まり手と成否は全マーク分を結果表に残す（再生中の一時表示だけだと見落とすため） */
+    ev+='<div class="tacHist">決まり手: '+((b.tacticHistory&&b.tacticHistory.length)?b.tacticHistory.join("、"):"仕掛けなし")+'</div>';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td class="'+cls+'">'+rankTxt+'</td>'+
+      '<td class="l"><span class="bnum" style="background:'+BOATCOL[b.i]+';color:'+BOATTXT[b.i]+'">'+(b.i+1)+'</span>'+NAMES[b.i]+'</td>'+
+      '<td>'+(b.actualST===null?"—":b.actualST.toFixed(2))+'</td>'+
+      '<td>'+(b.finishTime===null?"—":b.finishTime.toFixed(2))+'</td>'+
+      '<td>'+laps+'</td><td>'+(b.vMax*3.6).toFixed(1)+'km/h</td>'+
+      '<td class="l">'+ev+'</td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('resWrap').style.display="block";
+  document.getElementById('resEmpty').style.display="none";
+  drawStandings(); drawGraph();
+}
+</script>
+<script>
+"use strict";
+/* ================= 描画 ================= */
+var cv=document.getElementById('course'), ctx=cv.getContext('2d');
+var W=cv.width,H=cv.height, SCALE=Math.min(W/320,H/190), CX=W/2, CY=H/2-18;
+function X(x){return CX+x*SCALE;} function Y(y){return CY+y*SCALE;}
+function pathOffset(l,fill,close){
+  ctx.beginPath();
+  for(var s=0;s<=LAP;s+=4){ var p=trackPt(s,l); if(s===0)ctx.moveTo(X(p.x),Y(p.y)); else ctx.lineTo(X(p.x),Y(p.y)); }
+  ctx.closePath(); if(fill)ctx.fill();
+}
+function dark(){ return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches; }
+/* ===== 競艇場らしい水面の描画 =====
+   実物の競走水面は「陸地を囲む水のリング」ではなく、2つのターンマークが
+   浮かぶ一枚の広い水面（競走水面）。内側も外側も水で、艇はマークを回る。 */
+function basinPath(inset){
+  var hx=154-inset, hy=70-inset, r=hy, cxm=hx-r;
+  ctx.beginPath();
+  ctx.moveTo(X(-cxm),Y(-hy));
+  ctx.lineTo(X(cxm),Y(-hy));
+  ctx.arc(X(cxm),Y(0),r*SCALE,-Math.PI/2,Math.PI/2,false);
+  ctx.lineTo(X(-cxm),Y(hy));
+  ctx.arc(X(-cxm),Y(0),r*SCALE,Math.PI/2,Math.PI*1.5,false);
+  ctx.closePath();
+}
+function pill(x,y,w,h){
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(x,y,w,h,7); else ctx.rect(x,y,w,h);
+  ctx.fill();
+}
+function drawTurnMark(mx,my,name,labelDx){
+  var px=X(mx), py=Y(my), t=race?race.t:0;
+  /* 浮標の波紋 */
+  for(var k=0;k<2;k++){
+    var rr=7+((((t*7+k*9)%18)+18)%18);
+    ctx.beginPath(); ctx.ellipse(px,py+5,rr,rr*0.36,0,0,7);
+    ctx.strokeStyle="rgba(255,255,255,"+(0.34-k*0.13)+")"; ctx.lineWidth=1.3; ctx.stroke();
+  }
+  /* 影と土台 */
+  ctx.beginPath(); ctx.ellipse(px,py+5,11,4.2,0,0,7); ctx.fillStyle="rgba(0,20,28,.38)"; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px,py+3.5,10,3.8,0,0,7); ctx.fillStyle="#f2f2ee"; ctx.fill();
+  ctx.strokeStyle="rgba(0,0,0,.35)"; ctx.lineWidth=1; ctx.stroke();
+  /* ソフトクリーム状の赤白コーン */
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(px-8.5,py+3); ctx.lineTo(px,py-17); ctx.lineTo(px+8.5,py+3); ctx.closePath(); ctx.clip();
+  ctx.fillStyle="#f4f1e8"; ctx.fillRect(px-9,py-18,18,22);
+  ctx.fillStyle="#d3382c"; ctx.fillRect(px-9,py-12,18,5.4); ctx.fillRect(px-9,py-3.4,18,5.6);
+  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(px-8.5,py+3); ctx.lineTo(px,py-17); ctx.lineTo(px+8.5,py+3); ctx.closePath();
+  ctx.strokeStyle="rgba(0,0,0,.45)"; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(px,py-17,2.2,0,7); ctx.fillStyle="#d3382c"; ctx.fill();
+  /* ラベル */
+  ctx.font="800 12px sans-serif"; ctx.textAlign="center";
+  var tw=ctx.measureText(name).width+14;
+  ctx.fillStyle="rgba(4,32,42,.72)"; pill(px+labelDx-tw/2,py-38,tw,19);
+  ctx.fillStyle="#fff"; ctx.fillText(name,px+labelDx,py-24.5);
+  ctx.textAlign="left";
+}
+function drawBigClock(){
+  /* 大時計: ホーム側水際の桟橋上。針はシミュレーションの大時計と同期 */
+  var cxp=X(24), cyp=Y(80), r=21, t=race?race.t:0;
+  ctx.strokeStyle=dark()?"#6d7c80":"#8b9797"; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(cxp,Y(71)); ctx.lineTo(cxp,cyp); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cxp,cyp,r+3.5,0,7); ctx.fillStyle="#20303a"; ctx.fill();
+  ctx.beginPath(); ctx.arc(cxp,cyp,r,0,7); ctx.fillStyle="#fdfdf8"; ctx.fill();
+  ctx.strokeStyle="#20303a"; ctx.lineWidth=1.6; ctx.stroke();
+  for(var h=0;h<12;h++){ var a=h*Math.PI/6, r1=h%3===0?r-6.5:r-4;
+    ctx.beginPath(); ctx.moveTo(cxp+Math.sin(a)*r1,cyp-Math.cos(a)*r1);
+    ctx.lineTo(cxp+Math.sin(a)*(r-1.5),cyp-Math.cos(a)*(r-1.5));
+    ctx.strokeStyle=h===0?"#d3382c":"#33424c"; ctx.lineWidth=h===0?2.6:1.4; ctx.stroke(); }
+  var sa=t*6*Math.PI/180; /* 秒針: 0秒で12時。助走中は0へ近づく */
+  ctx.beginPath(); ctx.moveTo(cxp-Math.sin(sa)*5,cyp+Math.cos(sa)*5);
+  ctx.lineTo(cxp+Math.sin(sa)*(r-3),cyp-Math.cos(sa)*(r-3));
+  ctx.strokeStyle="#e8a812"; ctx.lineWidth=3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cxp,cyp,2.8,0,7); ctx.fillStyle="#20303a"; ctx.fill();
+  ctx.font="800 11.5px sans-serif"; ctx.textAlign="right";
+  ctx.fillStyle=dark()?"#cfe0e2":"#33424c"; ctx.fillText("大時計",cxp-r-8,cyp+4);
+  ctx.textAlign="left";
+}
+function drawStand(){
+  /* メインスタンド: 屋根＋ガラス面＋段々観客席（ホーム直線の外側・南岸） */
+  var x0=X(-148), x1=X(148), yR=Y(84.5);
+  ctx.fillStyle=dark()?"#31404d":"#46606e"; ctx.fillRect(x0,yR,(x1-x0),5.5); /* 屋根 */
+  ctx.fillStyle=dark()?"#7fa3b5":"#b9d6de"; ctx.fillRect(x0+4,Y(89.5),(x1-x0)-8,5); /* ガラス面 */
+  for(var s=0;s<4;s++){
+    ctx.fillStyle=dark()?["#3c4c55","#35454e","#2f3f47","#28363e"][s]:["#c8cfc9","#bcc5bd","#aeb8b0","#a0aba3"][s];
+    ctx.fillRect(x0+6+s*5,Y(93.5)+s*4.1,(x1-x0)-12-s*10,3.6);
+  }
+  /* 観客の点描（決定的なパターン） */
+  ctx.fillStyle=dark()?"rgba(230,220,190,.5)":"rgba(70,80,86,.45)";
+  for(var i=0;i<260;i++){
+    var cxp=x0+10+((i*47)%Math.max(40,(x1-x0)-20)), cyp=Y(93.5)+((i*29)%15)+1.4;
+    ctx.fillRect(cxp,cyp,1.7,1.7);
+  }
+  ctx.font="800 12px sans-serif"; ctx.textAlign="center";
+  ctx.fillStyle=dark()?"#d8e4e6":"#22333c";
+  ctx.fillText("メインスタンド",X(-108),Y(84.5)-7);
+  ctx.textAlign="left";
+}
+function drawFloodlight(mx,my){
+  var px=X(mx), py=Y(my);
+  ctx.strokeStyle=dark()?"#77868b":"#5d6d72"; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(px,py+16); ctx.lineTo(px,py-8); ctx.stroke();
+  ctx.fillStyle=dark()?"#9fb2b8":"#42545c";
+  ctx.fillRect(px-11,py-14,22,7);
+  ctx.fillStyle="#ffe9a3";
+  for(var i=0;i<4;i++) ctx.fillRect(px-8.5+i*5.4,py-12.4,3.6,3.4);
+}
+function drawCourse(){
+  var t=race?race.t:0, wind=race?race.wind:windVec(), wave=race?race.wave:waveHeight();
+  var dk=dark();
+  /* 周囲は陸地ではなくコンクリートの場内敷地 */
+  ctx.fillStyle=dk?"#202b2f":"#b7bfbb"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=dk?"rgba(255,255,255,.045)":"rgba(0,0,0,.055)"; ctx.lineWidth=1;
+  for(var gx=0;gx<W;gx+=46){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for(var gy=0;gy<H;gy+=46){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  /* バック側の看板列（色面のみ）と照明塔 */
+  var boardCols=["#274b63","#c8402a","#e8e6df","#0b6e6b","#274b63","#e8b13c","#274b63","#c8402a","#e8e6df","#0b6e6b"];
+  for(var bi=0;bi<boardCols.length;bi++){
+    ctx.fillStyle=boardCols[bi];
+    ctx.fillRect(X(-146)+bi*((X(146)-X(-146))/10)+2,Y(-84),((X(146)-X(-146))/10)-4,Y(-77.5)-Y(-84));
+  }
+  drawFloodlight(-158,-70); drawFloodlight(158,-70);
+
+  /* ===== 一枚水面の競走水面 ===== */
+  ctx.save();
+  basinPath(3.2); ctx.fillStyle=dk?"#39464b":"#98a39e"; ctx.fill(); /* 護岸の影 */
+  ctx.restore();
+  basinPath(0);
+  var grad=ctx.createLinearGradient(0,Y(-74),0,Y(74));
+  if(dk){ grad.addColorStop(0,"#0a4a63"); grad.addColorStop(.55,"#083d55"); grad.addColorStop(1,"#0a5069"); }
+  else { grad.addColorStop(0,"#177b9b"); grad.addColorStop(.55,"#0f6d90"); grad.addColorStop(1,"#1890aa"); }
+  ctx.fillStyle=grad; ctx.fill();
+
+  ctx.save(); basinPath(0); ctx.clip();
+  /* 水の濃淡（大きなうねり） */
+  ctx.fillStyle="rgba(255,255,255,.05)";
+  ctx.beginPath(); ctx.ellipse(X(-52),Y(-26),150,44,.18,0,7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(X(66),Y(34),170,48,-.12,0,7); ctx.fill();
+  ctx.fillStyle="rgba(0,30,45,.05)";
+  ctx.beginPath(); ctx.ellipse(X(10),Y(2),265,80,0,0,7); ctx.fill();
+  /* 波の線（風で流れる） */
+  ctx.strokeStyle="rgba(255,255,255,"+(0.07+Math.min(0.17,wave*0.36))+")"; ctx.lineWidth=1.4;
+  var off=(t*wind.spd*2)%46;
+  for(var x=-190;x<200;x+=23){ ctx.beginPath();
+    for(var y=-84;y<=88;y+=8){ var xx=x+Math.sin((y+off)*0.09+x)*4+off*0.3; if(y===-84)ctx.moveTo(X(xx),Y(y)); else ctx.lineTo(X(xx),Y(y)); } ctx.stroke(); }
+  /* きらめき */
+  ctx.fillStyle="rgba(255,255,255,.20)";
+  for(var si=0;si<70;si++){
+    var sx=((si*83+Math.floor(t*wind.spd*3)*(si%5+1))%380)-190, sy=((si*47)%150)-75+Math.sin(si*3.1)*3;
+    ctx.fillRect(X(sx),Y(sy),5.5,1.3);
+  }
+  /* 水面上の区域名（実況図と同じ呼び名） */
+  ctx.font="800 15px sans-serif"; ctx.textAlign="center";
+  ctx.fillStyle="rgba(255,255,255,.34)";
+  ctx.fillText("バ ッ ク ス ト レ ッ チ",X(0),Y(-57));
+  ctx.fillText("ホ ー ム ス ト レ ッ チ",X(0),Y(63));
+  ctx.font="700 11.5px sans-serif"; ctx.fillStyle="rgba(255,255,255,.5)";
+  ctx.fillText("待機行動水面",X(-104),Y(57));
+  ctx.textAlign="left";
+  ctx.restore();
+
+  /* 護岸と消波ブロックの目地 */
+  basinPath(0); ctx.strokeStyle=dk?"#5a6c72":"#d9dedb"; ctx.lineWidth=8; ctx.stroke();
+  basinPath(0); ctx.strokeStyle=dk?"rgba(10,20,24,.55)":"rgba(40,60,66,.4)"; ctx.lineWidth=2;
+  ctx.setLineDash([7,6]); ctx.stroke(); ctx.setLineDash([]);
+
+  /* ===== ピット（2マーク後方・バック側水際の浮き桟橋） ===== */
+  var px0=X(-138), px1=X(-72), py0=Y(-74), py1=Y(-65);
+  ctx.fillStyle=dk?"#4a5a60":"#7e8c90"; ctx.fillRect(px0,py0,(px1-px0),(py1-py0));
+  ctx.fillStyle=dk?"#d8e4e6":"#22333c"; ctx.font="800 11.5px sans-serif";
+  ctx.fillText("ピット",px0+4,py0+13.5);
+  for(var pi=0;pi<6;pi++){
+    var fx=px0+34+pi*((px1-px0-40)/6);
+    ctx.fillStyle=dk?"#5d6f76":"#97a5a9"; ctx.fillRect(fx,py1,3.4,Y(-58.5)-py1); /* 係留指桟橋 */
+    ctx.beginPath(); ctx.arc(fx+((px1-px0-40)/6)/2,py1+5.5,5.2,0,7);
+    ctx.fillStyle=BOATCOL[pi]; ctx.fill(); ctx.strokeStyle="rgba(0,0,0,.45)"; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=BOATTXT[pi]; ctx.font="800 8.5px sans-serif"; ctx.textAlign="center";
+    ctx.fillText(String(pi+1),fx+((px1-px0-40)/6)/2,py1+8.6); ctx.textAlign="left";
+  }
+
+  /* ===== スタートライン（＝ゴールライン） ===== */
+  var p0a=trackPt(0,-16), p0b=trackPt(0,22);
+  ctx.strokeStyle="rgba(255,255,255,.92)"; ctx.lineWidth=3; ctx.setLineDash([7,5]);
+  ctx.beginPath(); ctx.moveTo(X(p0a.x),Y(p0a.y)); ctx.lineTo(X(p0b.x),Y(p0b.y)); ctx.stroke(); ctx.setLineDash([]);
+  [p0a,p0b].forEach(function(pp){
+    ctx.beginPath(); ctx.arc(X(pp.x),Y(pp.y),3.6,0,7); ctx.fillStyle="#fff"; ctx.fill();
+    ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=1; ctx.stroke();
+  });
+  ctx.font="800 11.5px sans-serif";
+  ctx.fillStyle="rgba(4,32,42,.72)"; pill(X(p0b.x)-4,Y(p0b.y)+5,86,18);
+  ctx.fillStyle="#fff"; ctx.fillText("スタートライン",X(p0b.x)+3,Y(p0b.y)+18);
+
+  /* ===== ターンマークは旋回の中心に浮かぶブイ ===== */
+  drawTurnMark(STRAIGHT/2,0,"第1ターンマーク",0);
+  drawTurnMark(-STRAIGHT/2,0,"第2ターンマーク",0);
+  /* 小回り防止ブイ（2マーク手前） */
+  var kp={x:-99,y:-14};
+  for(var kr=0;kr<1;kr++){
+    ctx.beginPath(); ctx.ellipse(X(kp.x),Y(kp.y)+3,7,2.8,0,0,7); ctx.fillStyle="rgba(0,20,28,.3)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(X(kp.x),Y(kp.y),5,0,7); ctx.fillStyle="#f2c41c"; ctx.fill();
+    ctx.strokeStyle="rgba(0,0,0,.45)"; ctx.lineWidth=1.1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X(kp.x),Y(kp.y),1.6,0,7); ctx.fillStyle="#20303a"; ctx.fill();
+  }
+  ctx.font="700 10.5px sans-serif"; ctx.fillStyle="rgba(255,255,255,.85)";
+  ctx.fillText("小回り防止ブイ",X(kp.x)-28,Y(kp.y)-10);
+
+  drawStand();
+  drawBigClock();
+
+  /* 風の矢印（場内敷地上の表示パネル） */
+  var wx=W-118, wy=30;
+  ctx.fillStyle="rgba(4,32,42,.78)"; pill(wx-84,wy-17,168,52);
+  var wr=wind.spd*2.2+8, wa=Math.atan2(wind.y,wind.x);
+  ctx.strokeStyle="#ffd94d"; ctx.fillStyle="#ffd94d"; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(wx-Math.cos(wa)*wr,wy-Math.sin(wa)*wr); ctx.lineTo(wx+Math.cos(wa)*wr,wy+Math.sin(wa)*wr); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(wx+Math.cos(wa)*(wr+8),wy+Math.sin(wa)*(wr+8));
+  ctx.lineTo(wx+Math.cos(wa+0.5)*wr,wy+Math.sin(wa+0.5)*wr); ctx.lineTo(wx+Math.cos(wa-0.5)*wr,wy+Math.sin(wa-0.5)*wr); ctx.closePath(); ctx.fill();
+  ctx.font="700 12.5px sans-serif"; ctx.fillText("風 "+wind.spd.toFixed(1)+"m/s・波"+wave.toFixed(2)+"m",wx-52,wy+28);
+  /* 戦法の狙いライン: 仕掛け中の艇がこれから通ろうとする進路を破線で示す */
+  if(race) race.boats.forEach(function(b){
+    if(!b.tactic||!b._mods||b._mods.desired===null||b._mods.desired===undefined||b.state!=="run")return;
+    var col=b.tactic.type==="sashi"?"#7db4ff":b.tactic.type==="makuri"?"#ff9a7a":b.tactic.type==="ms"?"#7fe0d4":"#ffd94d";
+    ctx.strokeStyle=col; ctx.globalAlpha=0.55; ctx.lineWidth=2; ctx.setLineDash([5,5]);
+    ctx.beginPath();
+    for(var fd=4;fd<=95;fd+=7){
+      var fl=b.l+(b._mods.desired-b.l)*Math.min(1,fd/55);
+      var fp=trackPt(b.dist+fd,fl);
+      if(fd===4)ctx.moveTo(X(fp.x),Y(fp.y)); else ctx.lineTo(X(fp.x),Y(fp.y));
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+  });
+  /* 艇 */
+  if(race) race.boats.forEach(function(b){ drawBoat(b); });
+  /* フェーズ表示 */
+  var ph = !race||race.t<-8.9 ? "" :
+    race.t<0 ? "展示・助走中（大時計 "+(-race.t).toFixed(1)+"）" :
+    race.finished ? "レース終了" : "レース中 "+race.t.toFixed(1)+"秒";
+  if(ph){
+    ctx.font="800 14px sans-serif";
+    ctx.fillStyle="rgba(4,32,42,.78)"; pill(10,9,ctx.measureText(ph).width+20,26);
+    ctx.fillStyle="rgba(255,255,255,.95)"; ctx.fillText(ph,20,27);
+  }
+}
+function drawBoat(b){
+  /* 航跡（白波）: 中央の泡と左右へ広がるV字波 */
+  if(b.v>2&&b.state!=="capsize"){
+    ctx.strokeStyle="rgba(255,255,255,.42)"; ctx.lineWidth=3.4;
+    ctx.beginPath();
+    for(var d=2;d<17;d+=3){ var p=trackPt(b.dist-d,b.l); if(d===2)ctx.moveTo(X(p.x),Y(p.y)); else ctx.lineTo(X(p.x),Y(p.y)); }
+    ctx.stroke();
+    ctx.strokeStyle="rgba(255,255,255,.26)"; ctx.lineWidth=2.2;
+    [-1,1].forEach(function(side){
+      ctx.beginPath();
+      for(var d2=3;d2<21;d2+=4){ var q=trackPt(b.dist-d2,b.l+side*d2*0.16); if(d2===3)ctx.moveTo(X(q.x),Y(q.y)); else ctx.lineTo(X(q.x),Y(q.y)); }
+      ctx.stroke();
+    });
+  }
+  var p=trackPt(b.dist,b.l);
+  var ang=Math.atan2(p.ty,p.tx);
+  ctx.save(); ctx.translate(X(p.x),Y(p.y)); ctx.rotate(ang);
+  if(b.state==="capsize"){ ctx.rotate(1.2); ctx.globalAlpha=0.75; }
+  var L=15,Wd=5.6;
+  ctx.beginPath();
+  ctx.moveTo(L,0); ctx.lineTo(L*0.35,Wd); ctx.lineTo(-L,Wd*0.82); ctx.lineTo(-L,-Wd*0.82); ctx.lineTo(L*0.35,-Wd); ctx.closePath();
+  ctx.fillStyle=BOATCOL[b.i]; ctx.fill(); ctx.strokeStyle="rgba(0,0,0,.55)"; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.fillStyle=BOATTXT[b.i]; ctx.font="800 10.5px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(String(b.i+1),-1,0.5);
+  ctx.restore();
+  if(b.state==="flying"){ label(p,"F!", "#ff5a3c"); }
+  else if(b.state==="capsize"){ label(p,"転覆","#ff5a3c"); }
+  else if(b.state==="enginestop"){ label(p,"エ止","#ff5a3c"); }
+  else if(b.tactic&&b.state==="run"){
+    var tc=b.tactic.type==="sashi"?"#2456c8":b.tactic.type==="makuri"?"#c8402a":b.tactic.type==="ms"?"#0b6e6b":"#b8860b";
+    ctx.font="800 11px sans-serif"; ctx.textAlign="center";
+    var ttxt=b.tactic.label, twd=ctx.measureText(ttxt).width+10;
+    var bx=X(p.x)-twd/2, by=Y(p.y)-30;
+    ctx.fillStyle=tc; if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,twd,16,5);ctx.fill();}else ctx.fillRect(bx,by,twd,16);
+    ctx.fillStyle="#fff"; ctx.fillText(ttxt,X(p.x),by+12); ctx.textAlign="left";
+  }
+  else if(b.wakeLoss>0.45&&b.state==="run"){ label(p,"引き波","rgba(255,255,255,.85)"); }
+}
+function label(p,txt,col){
+  ctx.fillStyle=col; ctx.font="800 11px sans-serif"; ctx.textAlign="center";
+  ctx.fillText(txt,X(p.x),Y(p.y)-15);
+}
+function drawStandings(){
+  var tb=document.getElementById('standBody'); if(!race){tb.innerHTML="";return;}
+  var order=ranking(), lead=order.length?order[0]:null;
+  document.getElementById('lapTag').textContent=
+    race.t<0?"助走中":("進行 "+(lead?Math.min(3,Math.floor(Math.max(0,lead.dist)/LAP)+1):1)+" / 3周目");
+  tb.innerHTML=order.map(function(b,idx){
+    var gap="—";
+    if(lead&&b!==lead){
+      if(b.state==="finished"&&lead.finishTime) gap="+"+(b.finishTime-lead.finishTime).toFixed(2)+"秒";
+      else if(b.dist>=0) gap=(lead.dist-b.dist).toFixed(0)+"m";
+    }
+    var stTxt=b.state==="flying"?"F":b.state==="capsize"?"転覆":b.state==="enginestop"?"エ止":b.state==="late"?"出遅":(b.v*3.6).toFixed(0)+"km/h";
+    var tacHtml="";
+    if(b.tactic&&b.state==="run"){
+      var tcls=b.tactic.type==="sashi"?"sashi":b.tactic.type==="makuri"?"makuri":b.tactic.type==="ms"?"ms":"nige";
+      tacHtml='<br><span class="tacchip '+tcls+'">'+b.tactic.label+' 狙い'+(b.tactic.targetI>=0?("（対"+(b.tactic.targetI+1)+"号艇）"):"")+'</span>';
+    } else if(b.tacticHistory&&b.tacticHistory.length){
+      tacHtml='<br><span class="tacchip">'+b.tacticHistory[b.tacticHistory.length-1]+'</span>';
+    }
+    return '<tr class="'+(["flying","late","capsize","enginestop"].indexOf(b.state)>=0||b.foul?'dq':'')+'">'+
+      '<td>'+(b.state==="finished"&&!b.foul?(idx+1):"—")+'</td>'+
+      '<td style="text-align:left"><span class="bnum" style="background:'+BOATCOL[b.i]+';color:'+BOATTXT[b.i]+'">'+(b.i+1)+'</span>'+NAMES[b.i]+tacHtml+
+      '<div class="stbar"><i style="width:'+Math.max(0,Math.min(100,b.dist/RACE_DIST*100))+'%"></i></div></td>'+
+      '<td>'+stTxt+'</td><td>'+gap+'</td></tr>';
+  }).join("");
+  /* 展開モニター */
+  var tacEl=document.getElementById('tacList');
+  if(tacEl){
+    var act=race.boats.filter(function(b){return b.tactic&&b.state==="run";});
+    var done=race.boats.filter(function(b){return b.tacticHistory&&b.tacticHistory.length;});
+    if(act.length){
+      tacEl.innerHTML=act.map(function(b){
+        var ph=b.tactic.phase==="approach"?"仕掛け準備":b.tactic.phase==="turn"?(b.tactic.mark===1?"第1ターンマーク旋回中":"第2ターンマーク旋回中"):"出口・直線で押し切り中";
+        return '<li><span class="t">'+b.tactic.lap+'周'+b.tactic.mark+'M</span>'+(b.i+1)+'号艇「'+b.tactic.label+'」'+(b.tactic.targetI>=0?(" 対 "+(b.tactic.targetI+1)+"号艇"):"")+" — "+ph+'</li>';
+      }).join("");
+    } else if(done.length){
+      tacEl.innerHTML=done.map(function(b){ return '<li>'+(b.i+1)+'号艇: '+b.tacticHistory[b.tacticHistory.length-1]+'</li>'; }).join("");
+    }
+  }
+  /* 大時計 */
+  var ck=document.getElementById('bigClock');
+  if(race.t<0) ck.textContent="大時計 "+(-race.t).toFixed(1);
+  else ck.textContent="経過 "+race.t.toFixed(1)+"秒";
+  if(!race.finished&&race.t>=0) document.getElementById('phaseLabel').textContent="レース中（3周1800m）";
+  if(race.t<0) document.getElementById('phaseLabel').textContent="展示・助走中 — 0秒でスタートライン通過が目標";
+}
+function drawGraph(){
+  var g=document.getElementById('graph'), c=g.getContext('2d');
+  c.clearRect(0,0,g.width,g.height);
+  c.strokeStyle=dark()?"#3a5058":"#c8d8d4"; c.fillStyle=dark()?"#9db8ba":"#47626a"; c.font="11px sans-serif"; c.lineWidth=1;
+  var maxT=Math.max(30,hist.length?hist[hist.length-1].t:30), maxV=80;
+  for(var v=0;v<=80;v+=20){ var y=g.height-18-(v/maxV)*(g.height-30);
+    c.beginPath(); c.moveTo(34,y); c.lineTo(g.width-6,y); c.stroke(); c.fillText(v+"",6,y+4); }
+  c.fillText("秒",g.width-22,g.height-3);
+  if(hist.length<2){ c.fillText("レースを開始すると速度の推移が描かれます",44,26); return; }
+  for(var i=0;i<6;i++){
+    c.strokeStyle=i===0?(dark()?"#dddddd":"#888"):BOATCOL[i]; c.lineWidth=1.8; c.beginPath();
+    hist.forEach(function(h,hi){ var x=34+(h.t/maxT)*(g.width-44), y=g.height-18-(h.v[i]/maxV)*(g.height-30);
+      if(hi===0)c.moveTo(x,y); else c.lineTo(x,y); });
+    c.stroke();
+  }
+}
+
+/* ================= 再生制御 ================= */
+function stopAnim(){ if(rafId)cancelAnimationFrame(rafId); rafId=null; playing=false; }
+function loop(ts){
+  if(!playing)return;
+  if(!lastTs)lastTs=ts;
+  var real=(ts-lastTs)/1000; lastTs=ts;
+  simAcc+=Math.min(real,0.1)*playSpeed;
+  var n=0;
+  while(simAcc>=DT&&n<600){ stepRace(DT); simAcc-=DT; n++; if(race.finished)break; }
+  drawCourse(); drawStandings();
+  if(!race.finished) rafId=requestAnimationFrame(loop);
+  else { playing=false; drawGraph(); }
+}
+function startAnim(){
+  if(!race||race.finished) resetRace();
+  race.started=true; playing=true; lastTs=0; simAcc=0;
+  document.getElementById('btnPause').disabled=false;
+  document.getElementById('btnPause').textContent="一時停止";
+  rafId=requestAnimationFrame(loop);
+}
+document.getElementById('btnStart').addEventListener('click',function(){
+  resetRace(); startAnim();
+  document.getElementById('btnStart').textContent="↻ 最初から再生";
+  /* 設定が操作バーの直下にあるため、そのままではコースが画面外になる。
+     スタートと同時に観戦画面（コース＋ライブ順位）へ自動で移動する */
+  requestAnimationFrame(function(){ scrollToSection(document.getElementById('stageSec')); });
+});
+document.getElementById('btnPause').addEventListener('click',function(){
+  if(playing){ stopAnim(); this.textContent="再開"; }
+  else if(race&&!race.finished){ playing=true; lastTs=0; rafId=requestAnimationFrame(loop); this.textContent="一時停止"; }
+});
+document.getElementById('btnFast').addEventListener('click',function(){
+  stopAnim(); resetRace();
+  var guard=0;
+  while(!race.finished&&guard<60000){ stepRace(DT); guard++; }
+  if(!race.finished) finishRace();
+  drawCourse(); drawStandings(); drawGraph();
+  requestAnimationFrame(function(){ scrollToSection(document.getElementById('resSec')); });
+});
+document.querySelectorAll('#speedSeg button').forEach(function(b){
+  b.addEventListener('click',function(){
+    playSpeed=+b.dataset.sp;
+    document.querySelectorAll('#speedSeg button').forEach(function(x){x.classList.toggle('on',x===b);});
+  });
+});
+
+/* ================= 初期化 ================= */
+buildCards();
+resetRace();
+</script>
+</body>
+</html>
