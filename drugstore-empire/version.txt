@@ -1,1 +1,1 @@
-fun-layer stage B (store view) build: index-DGGmqCZS.js / published 2026-11-08
+fun-layer stage C (events) build: index-DmaIzRk6.js / published 2026-11-08
