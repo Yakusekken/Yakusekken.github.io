@@ -1,1 +1,1 @@
-fun-layer stage A (people) build: index-Coq4j9im.js / published 2026-11-08
+fun-layer stage B (store view) build: index-DGGmqCZS.js / published 2026-11-08
